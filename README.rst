@@ -40,6 +40,19 @@ Creating a Managed Connection
     >>> manager
     <ManagedConnection: postgres:///postgres (closed)>
 
+It is possible to pass keyword arguments to the underlying ``psycopg2.connect()``
+function like this:
+
+.. code:: python
+
+   >>> from psycopg2.extras import DictCursor
+   >>> manager2 = ManagedConnection(dsn, cursor_factory=DictCursor)
+   >>> manager2
+   <ManagedConnection: postgres:///postgres (closed)>
+
+Please note that the ``async`` parameter is not allowed and will result
+in an AssertionError
+
 Making Queries
 --------------
 
@@ -51,6 +64,17 @@ Making Queries
     ...     cursor.fetchone()
     ...     connection.commit()
     (1,)
+
+Using dict cursor:
+
+.. code:: python
+
+    >>> with manager2() as connection:
+    ...     cursor = connection.cursor()
+    ...     cursor.execute('SELECT 2 as x')
+    ...     cursor.fetchone()['x']
+    ...     connection.commit()
+    2
 
 Dealing with Uncommitted Transactions
 -------------------------------------

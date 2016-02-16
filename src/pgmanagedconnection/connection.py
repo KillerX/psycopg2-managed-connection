@@ -14,7 +14,7 @@ class ManagedConnection(object):
         psycopg2.extensions.TRANSACTION_STATUS_INTRANS,
     ))
 
-    def __init__(self, dsn):
+    def __init__(self, dsn, **connection_params):
         self.dsn = dsn
 
         self.__connection = None
@@ -25,6 +25,12 @@ class ManagedConnection(object):
         # Barrier to prevent multiple threads from utilizing the connection at
         # the same time to avoid interleaving transactions on the connection.
         self.__connection_usage_lock = threading.Lock()
+
+        # If `async` flag is passed to the connect function, then die because
+        # that would break the transaction control
+        assert 'async' not in connection_params
+
+        self.__connection_params = connection_params
 
     def __str__(self):
         return '%s' % (self.dsn,)
@@ -66,7 +72,7 @@ class ManagedConnection(object):
             with self.__connection_change_lock:
                 if not self.__connection or self.__connection.closed:
                     logger.debug('Connecting to %s...', self.dsn)
-                    self.__connection = psycopg2.connect(self.dsn)
+                    self.__connection = psycopg2.connect(self.dsn, **self.__connection_params)
 
             try:
                 yield self.__connection
